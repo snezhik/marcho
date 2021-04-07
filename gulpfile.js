@@ -5,7 +5,9 @@ const concat        = require('gulp-concat');
 const autoprefixer  = require('gulp-autoprefixer');
 const uglify        = require('gulp-uglify');
 const del = require('del');
-const imagemin    = require('gulp-imagemin');
+const imagemin      = require('gulp-imagemin');
+const rename        = require('gulp-rename');
+const nunjucksRender= require('gulp-nunjucks-render');
 const browserSync   = require('browser-sync').create();
 //const mainMin = require('./app/js/main.min');
 
@@ -18,10 +20,21 @@ function browsersync() {
     })
 }
 
+
+function nunjucks(){
+    return src('app/*.njk')
+    .pipe(nunjucksRender())
+    .pipe(dest('app'))
+    .pipe(browserSync.stream())
+}
+
 function styles() {
-    return src('app/scss/style.scss')
-    .pipe(scss({outputStyle: 'expanded'}))
-    .pipe(concat('style.min.css'))
+    return src('app/scss/*.scss')
+    .pipe(scss({outputStyle: 'compressed'}))
+    // .pipe(concat())
+    .pipe(rename({
+        suffix : '.min'
+    }))
     .pipe(autoprefixer({
         overrideBrowserslist: ['last 10 versions'], 
         grid: true
@@ -33,6 +46,11 @@ function styles() {
 function scripts(){
     return src([
         'node_modules/jquery/dist/jquery.js',
+        'node_modules/slick-carousel/slick/slick.js',
+        'node_modules/@fancyapps/fancybox/dist/jquery.fancybox.js',
+        'node_modules/rateyo/src/jquery.rateyo.js',
+        'node_modules/ion-rangeslider/js/ion.rangeSlider.js',
+        'node_modules/jquery-form-styler/dist/jquery.formstyler.js',
         'app/js/main.js'
     ])
     .pipe(concat('main.min.js'))
@@ -73,6 +91,7 @@ function cleanDist(){
 
 function watching(){
     watch(['app/scss/**/*.scss'], styles);
+    watch(['app/*.njk'], nunjucks);
     watch(['app/js/**/*.js','!app/js/main.min.js'],scripts);
     watch(['app/**/*.html']).on('change', browserSync.reload);
 }
@@ -82,10 +101,11 @@ exports.scripts = scripts;
 exports.browsersync = browsersync;
 exports.watching = watching;
 exports.images = images;
+exports.nunjucks = nunjucks;
 exports.build = build;
 exports.cleanDist = cleanDist;
 exports.build = series(cleanDist, images, build);
 
 
-exports.default = parallel(styles, scripts, browsersync, watching);
+exports.default = parallel(nunjucks, styles, scripts, browsersync, watching);
 
